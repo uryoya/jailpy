@@ -55,7 +55,26 @@ if __name__ == '__main__':
     if not root.exists():
         root.mkdir()
         with tarfile.open('pyjail.tar.gz') as pyjail:
-            pyjail.extractall(path=root)
+            def is_within_directory(directory, target):
+                
+                abs_directory = os.path.abspath(directory)
+                abs_target = os.path.abspath(target)
+            
+                prefix = os.path.commonprefix([abs_directory, abs_target])
+                
+                return prefix == abs_directory
+            
+            def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+            
+                for member in tar.getmembers():
+                    member_path = os.path.join(path, member.name)
+                    if not is_within_directory(path, member_path):
+                        raise Exception("Attempted Path Traversal in Tar File")
+            
+                tar.extractall(path, members, numeric_owner=numeric_owner) 
+                
+            
+            safe_extract(pyjail, path=root)
         default_umask = os.umask(0)
         root.chmod(mode=0o755)
         os.umask(default_umask)
